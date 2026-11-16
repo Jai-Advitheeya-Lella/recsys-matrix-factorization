@@ -1,0 +1,11 @@
+# PyTorch is installed separately (CUDA or CPU wheel), see README.
+numpy==2.5.5
+scipy==1.18.1
+pandas==3.1.1
+numba==0.68.1
+matplotlib==3.11.2
+scikit-learn==1.9.1
+pytest==9.2.0
+# reference baselines (used only for comparison)
+implicit==0.7.3
+scikit-surprise==1.1.5
