@@ -14,6 +14,7 @@ from the items u has not interacted with.
 
 from __future__ import annotations
 
+import copy
 import time
 from typing import Callable
 
@@ -114,7 +115,7 @@ class NCFRecommender:
         n_neg: int = 4,
         lr: float = 1e-3,
         weight_decay: float = 0.0,
-        batch_size: int = 2048,
+        batch_size: int = 4096,
         n_epochs: int = 20,
         optimizer: str = "adam",
         seed: int = 0,
@@ -138,7 +139,7 @@ class NCFRecommender:
             m = NeuMF(n_users, n_items, self.gmf_dim, self.layers, self.dropout)
             if self.pretrained is not None:
                 g, p = self.pretrained
-                m.load_pretrained(g.model.cpu(), p.model.cpu())
+                m.load_pretrained(copy.deepcopy(g.model).cpu(), copy.deepcopy(p.model).cpu())
             return m
         raise ValueError(self.arch)
 
@@ -172,7 +173,7 @@ class NCFRecommender:
             i_all = torch.cat([pos_i, neg_i])
             y_all = torch.cat([torch.ones_like(pos_u), torch.zeros_like(neg_i)]).float()
             perm = torch.randperm(len(u_all), device=self.device, generator=gen)
-            total, n_batches = 0.0, 0
+            total, n_batches = torch.zeros((), device=self.device), 0
             for s in range(0, len(perm), self.batch_size):
                 idx = perm[s : s + self.batch_size]
                 logits = self.model(u_all[idx], i_all[idx])
@@ -180,9 +181,9 @@ class NCFRecommender:
                 opt.zero_grad(set_to_none=True)
                 loss.backward()
                 opt.step()
-                total += float(loss.detach())
+                total += loss.detach()          # no host sync inside the loop
                 n_batches += 1
-            rec = {"epoch": epoch + 1, "loss": total / n_batches, "time": time.perf_counter() - t0}
+            rec = {"epoch": epoch + 1, "loss": float(total) / n_batches, "time": time.perf_counter() - t0}
             if callback is not None:
                 rec.update(callback(self))
                 if "score" in rec and rec["score"] > best:

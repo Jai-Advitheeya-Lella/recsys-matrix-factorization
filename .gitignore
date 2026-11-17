@@ -8,3 +8,4 @@ checkpoints/
 *.pt
 *.npz
 .ipynb_checkpoints/
+logs/
