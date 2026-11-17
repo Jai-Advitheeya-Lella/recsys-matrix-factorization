@@ -1,0 +1,3 @@
+# Optional: library implementations used only as reference baselines in the experiments.
+implicit==0.7.3
+scikit-surprise==1.1.5

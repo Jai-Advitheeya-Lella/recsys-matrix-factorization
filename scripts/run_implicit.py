@@ -52,15 +52,15 @@ def grid(**axes):
 
 GRIDS = {
     "Popularity": [{}],
-    "ItemKNN": grid(k=[20, 50, 100, 200, 500], shrink=[0.0, 10.0, 100.0]),
-    "ALS": grid(n_factors=[64, 128], reg=[1.0, 10.0, 50.0, 200.0], alpha=[1.0, 3.0, 10.0, 30.0]),
-    "BPR": grid(n_factors=[64, 128], lr=[0.01, 0.05], reg=[0.0005, 0.002, 0.01]),
+    "ItemKNN": grid(k=[20, 50, 100, 200, 500, 1000], shrink=[0.0, 10.0, 100.0]),
+    "ALS": grid(n_factors=[64, 128], reg=[10.0, 25.0, 50.0, 100.0, 200.0], alpha=[0.3, 1.0, 3.0, 10.0, 30.0]),
+    "BPR": grid(n_factors=[128], lr=[0.05, 0.1], reg=[0.01, 0.03, 0.1]),
     "MF-explicit": grid(n_factors=[100], lr=[0.01], reg=[0.05]),
     "GMF": grid(gmf_dim=[64], lr=[1e-3, 3e-4]),
     "MLP": grid(layers=[(128, 64, 32)], lr=[1e-3, 3e-4]),
     "NeuMF": grid(pretrained=[False, True]),
 }
-EPOCHS = {"BPR": 150, "MF-explicit": 40, "GMF": 30, "MLP": 30, "NeuMF": 30}
+EPOCHS = {"BPR": 300, "MF-explicit": 40, "GMF": 60, "MLP": 30, "NeuMF": 30}
 
 
 def make_model(name: str, p: dict, seed: int, n_epochs: int | None = None, pretrained=None):
