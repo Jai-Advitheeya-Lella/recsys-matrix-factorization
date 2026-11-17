@@ -40,7 +40,7 @@ def apply_style() -> None:
         "axes.labelcolor": TEXT2,
         "axes.titlecolor": TEXT,
         "axes.titlesize": 12,
-        "axes.titleweight": "semibold",
+        "axes.titleweight": "bold",
         "axes.labelsize": 10,
         "axes.spines.top": False,
         "axes.spines.right": False,

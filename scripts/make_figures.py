@@ -114,8 +114,8 @@ def fig_embeddings(ml, factors, out: Path, model_key: str) -> dict:
     ax.grid(False)
     for s in ax.spines.values():
         s.set_visible(False)
-    ax.set_title(f"t-SNE of {model_key} item embeddings — 1,500 most-rated MovieLens-1M films",
-                 loc="left", fontsize=13)
+    ax.set_title(f"t-SNE of {model_key} item embeddings: 1,500 most-rated MovieLens-1M films",
+                 loc="left", fontsize=13, pad=26)
     ax.text(0.0, 1.0, "Genres were never shown to the model; colour = genre group (films matching exactly one group)",
             transform=ax.transAxes, fontsize=9.5, color=TEXT2, va="bottom")
     leg = ax.legend(loc="lower left", markerscale=1.4, ncol=2, fontsize=9, bbox_to_anchor=(0.0, -0.08))
