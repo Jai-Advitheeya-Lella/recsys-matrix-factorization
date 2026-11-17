@@ -1,0 +1,54 @@
+{
+  "iterations": 10,
+  "threads": 4,
+  "rows": [
+    {
+      "n_factors": 32,
+      "solver": "cholesky",
+      "seconds": 0.8774488129929523,
+      "objective": 1033536.0534040208
+    },
+    {
+      "n_factors": 32,
+      "solver": "cg",
+      "seconds": 0.5587381959994673,
+      "objective": 1033332.2871379519
+    },
+    {
+      "n_factors": 64,
+      "solver": "cholesky",
+      "seconds": 2.824232779996237,
+      "objective": 1002824.8887955284
+    },
+    {
+      "n_factors": 64,
+      "solver": "cg",
+      "seconds": 0.4630777490019682,
+      "objective": 1002896.7376037742
+    },
+    {
+      "n_factors": 128,
+      "solver": "cholesky",
+      "seconds": 7.105958784995892,
+      "objective": 976348.7153416085
+    },
+    {
+      "n_factors": 128,
+      "solver": "cg",
+      "seconds": 1.1608030170027632,
+      "objective": 976752.6666783621
+    },
+    {
+      "n_factors": 256,
+      "solver": "cholesky",
+      "seconds": 31.78435292300128,
+      "objective": 949892.2174465131
+    },
+    {
+      "n_factors": 256,
+      "solver": "cg",
+      "seconds": 4.723559623998881,
+      "objective": 951178.114044012
+    }
+  ]
+}
