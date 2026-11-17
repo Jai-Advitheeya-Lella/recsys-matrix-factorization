@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import itertools
+import pickle
 import sys
 import time
 from pathlib import Path
@@ -203,6 +204,26 @@ def _reference_models(tuned, train_full, Rtr, seed):
     return refs
 
 
+def _cache_file(results: str, stage: str, display: str) -> Path:
+    safe = "".join(c if c.isalnum() else "_" for c in display)
+    return Path(results) / "cache" / f"{stage}_{safe}.pkl"
+
+
+def _cache_load(results: str, stage: str, display: str):
+    f = _cache_file(results, stage, display)
+    if f.exists():
+        with open(f, "rb") as fh:
+            return pickle.load(fh)
+    return None
+
+
+def _cache_save(results: str, stage: str, display: str, obj) -> None:
+    f = _cache_file(results, stage, display)
+    f.parent.mkdir(parents=True, exist_ok=True)
+    with open(f, "wb") as fh:
+        pickle.dump(obj, fh)
+
+
 def stage_final(ml, args):
     tuned = load_tuned(args.results)
     _, _, train_full, test = temporal_splits(ml)
@@ -213,7 +234,16 @@ def stage_final(ml, args):
     deterministic = {"Popularity", "ItemKNN"}
     topk_store, factors_store = {}, {}
     for display, name, p in _final_variants(tuned):
-        recs = []
+        cached = _cache_load(args.results, "final", display)
+        if cached is not None:
+            print(f"[final] {display}: loaded from cache", flush=True)
+            recs = cached["recs"]
+            topk_store.update(cached["topk"])
+            factors_store.update(cached["factors"])
+            mean, std = mean_std(recs)
+            out["models"][display] = {"params": p, "seeds": recs, "mean": mean, "std": std}
+            continue
+        recs, part_topk, part_factors = [], {}, {}
         seeds = [0] if name in deterministic else args.seeds
         for seed in seeds:
             seed_everything(seed)
@@ -233,11 +263,14 @@ def stage_final(ml, args):
             print(f"[final] {display} seed={seed} ndcg@10={rec['ndcg@10']:.4f} recall@20={rec['recall@20']:.4f} "
                   f"cov@10={rec['coverage@10']:.3f} t={fit_time:.1f}s", flush=True)
             if seed == 0:
-                topk_store[display] = r["topk"][:, :20]
-                topk_store["users"] = r["users"]
-                topk_store[display + "/ndcg@10"] = r["per_user"]["ndcg@10"]
+                part_topk[display] = r["topk"][:, :20]
+                part_topk["users"] = r["users"]
+                part_topk[display + "/ndcg@10"] = r["per_user"]["ndcg@10"]
                 if hasattr(model, "item_factors"):
-                    factors_store[display] = model.item_factors
+                    part_factors[display] = model.item_factors
+        topk_store.update(part_topk)
+        factors_store.update(part_factors)
+        _cache_save(args.results, "final", display, {"recs": recs, "topk": part_topk, "factors": part_factors})
         mean, std = mean_std(recs)
         out["models"][display] = {"params": p, "seeds": recs, "mean": mean, "std": std}
     for display, (score_fn, fit_time) in _reference_models(tuned, train_full, Rtr, 0).items():
@@ -260,18 +293,24 @@ def stage_loo(ml, args):
     test_item[test.users] = test.items
     out = {"protocol": "leave-last-one-out; hyper-parameters from the temporal protocol",
            "hardware": hardware_info(), "models": {}}
-    fitted = {}
     for display, name, p in _final_variants(tuned):
         if display == "ALS (Cholesky)":
             continue
+        cached = _cache_load(args.results, "loo", display)
+        if cached is not None:
+            out["models"][display] = cached
+            print(f"[loo] {display}: loaded from cache", flush=True)
+            continue
         seed_everything(0)
-        pre = (fitted["GMF"], fitted["MLP"]) if (name == "NeuMF" and p.get("pretrained")) else None
+        pre = None
+        if name == "NeuMF" and p.get("pretrained"):
+            pre = tuple(fit_model(make_model(n, tuned[n]["best"]["params"], 0, _refit_epochs(tuned[n]["best"], n)),
+                                  n, train) for n in ("GMF", "MLP"))
         model = fit_model(make_model(name, p, 0, _refit_epochs(tuned[name]["best"], name), pre), name, train)
-        if name in ("GMF", "MLP"):
-            fitted[name] = model
         full = evaluate_ranking(model.score, Rtr, Rte, ks=(10,))
         samp = sampled_metrics(model.score, Rtr, test_item, users, n_negatives=100, k=10, seed=0)
         out["models"][display] = {"hr@10": full["hr@10"], "ndcg@10": full["ndcg@10"], **samp}
+        _cache_save(args.results, "loo", display, out["models"][display])
         print(f"[loo] {display} full HR@10={full['hr@10']:.4f} NDCG@10={full['ndcg@10']:.4f} | "
               f"sampled HR@10={samp['sampled_hr@10']:.4f} NDCG@10={samp['sampled_ndcg@10']:.4f}", flush=True)
     save_json(out, Path(args.results) / "implicit_loo.json")
